@@ -1,0 +1,545 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>脳トレバトル</title>
+<meta name="description" content="一般常識クイズとIQテストで仲間とランキングを競うサイト">
+<meta name="theme-color" content="#4f46e5">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🧠</text></svg>">
+<style>
+  :root {
+    --bg: #f5f6fb;
+    --card: #ffffff;
+    --text: #1d2033;
+    --muted: #6b7088;
+    --line: #e4e6f0;
+    --primary: #4f46e5;
+    --primary-soft: #eceafe;
+    --accent: #f59e0b;
+    --ok: #16a34a;
+    --ok-soft: #dcfce7;
+    --ng: #dc2626;
+    --ng-soft: #fee2e2;
+    --gen: #0ea5e9;
+    --iq: #8b5cf6;
+    --shadow: 0 2px 10px rgba(30, 35, 80, .07);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #12131c;
+      --card: #1c1e2b;
+      --text: #eceef7;
+      --muted: #9a9fb8;
+      --line: #2c2f42;
+      --primary: #818cf8;
+      --primary-soft: #272a4a;
+      --ok: #4ade80;
+      --ok-soft: #15301f;
+      --ng: #f87171;
+      --ng-soft: #3a1c1c;
+      --shadow: none;
+    }
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Noto Sans JP", "Yu Gothic", sans-serif;
+    line-height: 1.6;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .wrap { max-width: 520px; margin: 0 auto; padding: 16px 16px calc(32px + env(safe-area-inset-bottom)); }
+  .screen { display: none; }
+  .screen.active { display: block; animation: fade .25s ease; }
+  @keyframes fade { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+
+  h1 { font-size: 28px; margin: 12px 0 2px; letter-spacing: .02em; }
+  h2 { font-size: 18px; margin: 0 0 12px; }
+  .sub { color: var(--muted); margin: 0 0 20px; font-size: 14px; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 16px; box-shadow: var(--shadow); margin-bottom: 14px; }
+  label.lbl { display: block; font-size: 13px; color: var(--muted); margin-bottom: 6px; }
+  input[type=text] {
+    width: 100%; font-size: 17px; padding: 12px 14px; border-radius: 12px;
+    border: 1.5px solid var(--line); background: var(--bg); color: var(--text); outline: none;
+  }
+  input[type=text]:focus { border-color: var(--primary); }
+  .hint { font-size: 12px; color: var(--muted); margin-top: 6px; }
+
+  button { font: inherit; cursor: pointer; border: none; }
+  .mode {
+    display: flex; align-items: center; gap: 14px; width: 100%; text-align: left;
+    background: var(--card); color: var(--text); border: 1px solid var(--line);
+    border-radius: 16px; padding: 16px; margin-bottom: 12px; box-shadow: var(--shadow);
+    transition: transform .08s;
+  }
+  .mode:active { transform: scale(.98); }
+  .mode .ico { width: 52px; height: 52px; border-radius: 14px; display: grid; place-items: center; font-size: 28px; flex: none; }
+  .mode.gen .ico { background: color-mix(in srgb, var(--gen) 18%, transparent); }
+  .mode.iq .ico { background: color-mix(in srgb, var(--iq) 18%, transparent); }
+  .mode b { display: block; font-size: 17px; }
+  .mode span { font-size: 13px; color: var(--muted); }
+  .btn {
+    display: block; width: 100%; padding: 14px; border-radius: 14px; font-size: 16px; font-weight: 700;
+    background: var(--primary); color: #fff;
+  }
+  .btn.ghost { background: var(--primary-soft); color: var(--primary); }
+  .btn + .btn { margin-top: 10px; }
+  .row { display: flex; gap: 10px; }
+  .row .btn { margin-top: 0; }
+
+  /* クイズ画面 */
+  .qhead { display: flex; justify-content: space-between; align-items: center; font-size: 14px; color: var(--muted); margin-bottom: 8px; }
+  .qhead .score { font-weight: 700; color: var(--text); }
+  .timer { height: 8px; background: var(--line); border-radius: 99px; overflow: hidden; margin-bottom: 16px; }
+  .timer i { display: block; height: 100%; width: 100%; background: var(--primary); border-radius: 99px; transform-origin: left; }
+  .timer i.warn { background: var(--ng); }
+  .lv { display: inline-block; font-size: 12px; padding: 2px 8px; border-radius: 99px; background: var(--primary-soft); color: var(--primary); margin-bottom: 8px; }
+  .lv[hidden] { display: none; }
+  .qtext { font-size: 20px; font-weight: 700; white-space: pre-line; margin: 0 0 18px; min-height: 64px; }
+  .choices { display: grid; gap: 10px; }
+  .choice {
+    width: 100%; text-align: left; padding: 14px 16px; border-radius: 14px; font-size: 16px;
+    background: var(--card); color: var(--text); border: 1.5px solid var(--line); box-shadow: var(--shadow);
+  }
+  .choice:active { transform: scale(.99); }
+  .choice.ok { background: var(--ok-soft); border-color: var(--ok); color: var(--text); }
+  .choice.ng { background: var(--ng-soft); border-color: var(--ng); }
+  .choice:disabled { cursor: default; }
+  .flash { text-align: center; font-weight: 800; font-size: 18px; height: 28px; margin-top: 14px; }
+  .flash.ok { color: var(--ok); } .flash.ng { color: var(--ng); }
+  .quit { background: none; color: var(--muted); font-size: 13px; margin: 18px auto 0; display: block; text-decoration: underline; }
+
+  /* 結果 */
+  .result-hero { text-align: center; padding: 24px 16px; }
+  .result-hero .label { color: var(--muted); font-size: 14px; }
+  .result-hero .big { font-size: 56px; font-weight: 800; line-height: 1.1; margin: 6px 0; color: var(--primary); }
+  .result-hero .meta { font-size: 14px; color: var(--muted); }
+  .result-hero .rankmsg { margin-top: 10px; font-weight: 700; min-height: 1.6em; }
+  .comment { margin-top: 8px; font-size: 15px; }
+  .note { font-size: 12px; color: var(--muted); margin-top: 8px; }
+  .review { list-style: none; padding: 0; margin: 0; }
+  .review li { padding: 12px 0; border-top: 1px solid var(--line); font-size: 14px; }
+  .review li:first-child { border-top: none; padding-top: 0; }
+  .review .rq { font-weight: 700; white-space: pre-line; }
+  .review .ra { margin-top: 4px; }
+  .review .re { color: var(--muted); margin-top: 4px; font-size: 13px; }
+  .mark { font-weight: 800; margin-right: 4px; }
+  .mark.ok { color: var(--ok); } .mark.ng { color: var(--ng); }
+
+  /* ランキング */
+  .tabs { display: flex; background: var(--line); padding: 4px; border-radius: 12px; margin-bottom: 14px; }
+  .tabs button { flex: 1; padding: 9px; border-radius: 9px; background: none; color: var(--muted); font-weight: 700; font-size: 14px; }
+  .tabs button.on { background: var(--card); color: var(--text); box-shadow: var(--shadow); }
+  .rank-list { list-style: none; margin: 0; padding: 0; }
+  .rank-list li { display: flex; align-items: center; gap: 12px; padding: 11px 4px; border-top: 1px solid var(--line); }
+  .rank-list li:first-child { border-top: none; }
+  .rank-list li.me { background: var(--primary-soft); border-radius: 10px; }
+  .pos { width: 34px; text-align: center; font-weight: 800; font-size: 16px; flex: none; }
+  .pos.p1 { font-size: 22px; } .pos.p2 { font-size: 20px; } .pos.p3 { font-size: 20px; }
+  .who { flex: 1; min-width: 0; }
+  .who b { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .who small { color: var(--muted); font-size: 12px; }
+  .pts { font-weight: 800; font-size: 18px; }
+  .pts small { font-size: 12px; color: var(--muted); font-weight: 400; }
+  .empty { text-align: center; color: var(--muted); padding: 24px 0; font-size: 14px; }
+  .banner { font-size: 12px; color: var(--muted); background: var(--primary-soft); border-radius: 10px; padding: 8px 12px; margin-bottom: 14px; }
+  .linkbtn { background: none; color: var(--primary); font-weight: 700; font-size: 14px; padding: 6px 0; }
+  .toprow { display: flex; justify-content: space-between; align-items: center; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- ホーム -->
+  <section id="home" class="screen active">
+    <h1>🧠 脳トレバトル</h1>
+    <p class="sub">常識クイズとIQテストで仲間とスコアを競おう</p>
+
+    <div class="card">
+      <label class="lbl" for="name">プレイヤー名（ランキングに表示されます）</label>
+      <input id="name" type="text" maxlength="12" placeholder="例：かいと" autocomplete="nickname">
+      <div class="hint">12文字まで．同じ名前の記録は自己ベストだけがランキングに載ります．</div>
+    </div>
+
+    <button class="mode gen" data-mode="general">
+      <div class="ico">📚</div>
+      <div><b>一般常識クイズ</b><span>全10問・1問15秒・早く答えるほど高得点</span></div>
+    </button>
+    <button class="mode iq" data-mode="iq">
+      <div class="ico">🧩</div>
+      <div><b>IQテスト</b><span>全15問・1問45秒・数列や論理パズルで推定IQを算出</span></div>
+    </button>
+
+    <button class="btn ghost" id="goRanking">🏆 ランキングを見る</button>
+  </section>
+
+  <!-- クイズ -->
+  <section id="quiz" class="screen">
+    <div class="qhead">
+      <span id="qTitle"></span>
+      <span id="qCount"></span>
+      <span class="score" id="qScore"></span>
+    </div>
+    <div class="timer"><i id="timerBar"></i></div>
+    <span class="lv" id="qLv" hidden></span>
+    <p class="qtext" id="qText"></p>
+    <div class="choices" id="choices"></div>
+    <div class="flash" id="flash"></div>
+    <button class="quit" id="quit">やめてホームに戻る</button>
+  </section>
+
+  <!-- 結果 -->
+  <section id="result" class="screen">
+    <div class="card result-hero">
+      <div class="label" id="rLabel"></div>
+      <div class="big" id="rBig"></div>
+      <div class="meta" id="rMeta"></div>
+      <div class="comment" id="rComment"></div>
+      <div class="rankmsg" id="rRank"></div>
+      <div class="note" id="rNote"></div>
+    </div>
+    <div class="row">
+      <button class="btn" id="again">もう一度</button>
+      <button class="btn ghost" id="toRanking">ランキング</button>
+    </div>
+    <button class="btn ghost" id="share" style="margin-top:10px">📣 結果をシェア</button>
+    <div class="card" style="margin-top:14px">
+      <h2>答え合わせ</h2>
+      <ul class="review" id="review"></ul>
+    </div>
+    <button class="btn ghost" id="toHome">ホームに戻る</button>
+  </section>
+
+  <!-- ランキング -->
+  <section id="ranking" class="screen">
+    <div class="toprow">
+      <h1 style="font-size:24px">🏆 ランキング</h1>
+      <button class="linkbtn" id="reload">↻ 更新</button>
+    </div>
+    <p class="sub" style="margin-bottom:12px">名前ごとの自己ベストで順位を決めています</p>
+    <div class="banner" id="localBanner" hidden>ランキングの共有設定がまだなので，この端末の記録だけを表示しています．</div>
+    <div class="tabs">
+      <button data-tab="general" class="on">📚 常識クイズ</button>
+      <button data-tab="iq">🧩 IQテスト</button>
+    </div>
+    <div class="card">
+      <ul class="rank-list" id="rankList"></ul>
+    </div>
+    <button class="btn ghost" id="rankHome">ホームに戻る</button>
+  </section>
+
+</div>
+
+<script src="config.js"></script>
+<script src="questions.js"></script>
+<script>
+(() => {
+  'use strict';
+
+  const MODES = {
+    general: { title: '常識クイズ', count: 10, limit: 15, unit: '点' },
+    iq:      { title: 'IQテスト',   count: 15, limit: 45, unit: '' },
+  };
+  const API = (typeof RANKING_API_URL === 'string' ? RANKING_API_URL.trim() : '');
+  const LOCAL_KEY = 'brainbattle_scores';
+  const NAME_KEY = 'brainbattle_name';
+
+  const $ = (id) => document.getElementById(id);
+  const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+  // ---- 画面切り替え ----
+  function show(id) {
+    document.querySelectorAll('.screen').forEach((s) => s.classList.toggle('active', s.id === id));
+    window.scrollTo(0, 0);
+  }
+
+  // ---- 端末内保存（失敗しても動くように） ----
+  const store = {
+    get(k, d) { try { const v = localStorage.getItem(k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } },
+    set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} },
+  };
+
+  const nameInput = $('name');
+  nameInput.value = store.get(NAME_KEY, '');
+
+  // ---- ユーティリティ ----
+  function shuffle(arr) {
+    const a = arr.slice();
+    for (let i = a.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [a[i], a[j]] = [a[j], a[i]];
+    }
+    return a;
+  }
+
+  function pickQuestions(mode) {
+    if (mode === 'general') return shuffle(GENERAL_QUESTIONS).slice(0, MODES.general.count);
+    // IQはレベル1→2→3の順に5問ずつ
+    const out = [];
+    [1, 2, 3].forEach((lv) => out.push(...shuffle(IQ_QUESTIONS.filter((q) => q.lv === lv)).slice(0, 5)));
+    return out;
+  }
+
+  // ---- ゲーム状態 ----
+  let game = null;
+  let timerId = null;
+
+  function startGame(mode) {
+    const name = nameInput.value.trim();
+    if (!name) {
+      nameInput.focus();
+      nameInput.placeholder = '先に名前を入れてね';
+      nameInput.style.borderColor = 'var(--ng)';
+      return;
+    }
+    nameInput.style.borderColor = '';
+    store.set(NAME_KEY, name);
+
+    game = {
+      mode, name,
+      cfg: MODES[mode],
+      qs: pickQuestions(mode).map((q) => ({ ...q, choices: shuffle([q.a, ...q.w]) })),
+      idx: 0,
+      score: 0,
+      correct: 0,
+      ratioSum: 0, // IQ用：正解時の残り時間の割合
+      elapsed: 0,
+      answers: [],
+    };
+    $('qTitle').textContent = game.cfg.title;
+    show('quiz');
+    showQuestion();
+  }
+
+  function showQuestion() {
+    const q = game.qs[game.idx];
+    $('qCount').textContent = `${game.idx + 1} / ${game.qs.length}`;
+    $('qScore').textContent = game.mode === 'general' ? `${game.score}点` : `正解 ${game.correct}`;
+    const lv = $('qLv');
+    if (q.lv) { lv.hidden = false; lv.textContent = ['', 'やさしい', 'ふつう', 'むずかしい'][q.lv]; } else lv.hidden = true;
+    $('qText').textContent = q.q;
+    $('flash').textContent = '';
+    $('flash').className = 'flash';
+
+    const box = $('choices');
+    box.innerHTML = '';
+    q.choices.forEach((c) => {
+      const b = document.createElement('button');
+      b.className = 'choice';
+      b.textContent = c;
+      b.addEventListener('click', () => answer(c));
+      box.appendChild(b);
+    });
+
+    // タイマー
+    const bar = $('timerBar');
+    const limit = game.cfg.limit * 1000;
+    game.qStart = performance.now();
+    clearInterval(timerId);
+    bar.classList.remove('warn');
+    bar.style.transform = 'scaleX(1)';
+    timerId = setInterval(() => {
+      const left = Math.max(0, limit - (performance.now() - game.qStart));
+      bar.style.transform = `scaleX(${left / limit})`;
+      bar.classList.toggle('warn', left < limit * 0.25);
+      if (left <= 0) answer(null);
+    }, 50);
+  }
+
+  function answer(choice) {
+    if (!game || game.locked) return;
+    game.locked = true;
+    clearInterval(timerId);
+
+    const q = game.qs[game.idx];
+    const limit = game.cfg.limit;
+    const used = Math.min(limit, (performance.now() - game.qStart) / 1000);
+    const left = Math.max(0, limit - used);
+    const ok = choice === q.a;
+    game.elapsed += used;
+
+    let gained = 0;
+    if (ok) {
+      game.correct++;
+      if (game.mode === 'general') {
+        gained = 100 + Math.ceil(left) * 10;
+        game.score += gained;
+      } else {
+        game.ratioSum += left / limit;
+      }
+    }
+    game.answers.push({ q, choice, ok });
+
+    document.querySelectorAll('.choice').forEach((b) => {
+      b.disabled = true;
+      if (b.textContent === q.a) b.classList.add('ok');
+      else if (b.textContent === choice) b.classList.add('ng');
+    });
+    const f = $('flash');
+    if (ok) { f.textContent = game.mode === 'general' ? `⭕ 正解！ +${gained}` : '⭕ 正解！'; f.className = 'flash ok'; }
+    else { f.textContent = choice === null ? '⏰ 時間切れ' : '❌ ざんねん'; f.className = 'flash ng'; }
+    $('qScore').textContent = game.mode === 'general' ? `${game.score}点` : `正解 ${game.correct}`;
+
+    const current = game;
+    setTimeout(() => {
+      if (game !== current) return; // 途中でやめた場合
+      game.locked = false;
+      game.idx++;
+      if (game.idx < game.qs.length) showQuestion();
+      else finish();
+    }, ok ? 800 : 1400);
+  }
+
+  // 推定IQ（お遊び用）：70〜150
+  function calcIQ(correct, total, ratioSum) {
+    const bonus = Math.round(5 * ratioSum / total);
+    return 70 + correct * Math.round(75 / total) + bonus;
+  }
+
+  function comment(mode, score, correct, total) {
+    const r = correct / total;
+    if (mode === 'iq') {
+      if (score >= 140) return '🧠 天才的！';
+      if (score >= 125) return '✨ かなりの切れ者';
+      if (score >= 110) return '👍 なかなか鋭い';
+      if (score >= 95) return '🙂 平均くらい';
+      return '😴 今日は頭が寝てたかも';
+    }
+    if (r === 1) return '🏅 パーフェクト！';
+    if (r >= 0.8) return '✨ 物知り！';
+    if (r >= 0.6) return '👍 なかなか';
+    if (r >= 0.4) return '🙂 まずまず';
+    return '📖 伸びしろたっぷり';
+  }
+
+  function finish() {
+    const g = game;
+    const total = g.qs.length;
+    const score = g.mode === 'general' ? g.score : calcIQ(g.correct, total, g.ratioSum);
+    const time = Math.round(g.elapsed * 10) / 10;
+    g.final = { score, time };
+
+    $('rLabel').textContent = g.mode === 'general' ? `${g.name} さんのスコア` : `${g.name} さんの推定IQ`;
+    $('rBig').textContent = g.mode === 'general' ? `${score}点` : score;
+    $('rMeta').textContent = `${total}問中 ${g.correct}問正解・${time}秒`;
+    $('rComment').textContent = comment(g.mode, score, g.correct, total);
+    $('rNote').textContent = g.mode === 'iq' ? '※推定IQは正解数と回答スピードから出したお遊びの数値です' : '';
+    $('rRank').textContent = 'ランキングに登録中…';
+
+    $('review').innerHTML = g.answers.map((x) => `
+      <li>
+        <div class="rq"><span class="mark ${x.ok ? 'ok' : 'ng'}">${x.ok ? '⭕' : '❌'}</span>${esc(x.q.q)}</div>
+        <div class="ra">正解：<b>${esc(x.q.a)}</b>${x.ok ? '' : `　あなた：${x.choice === null ? '時間切れ' : esc(x.choice)}`}</div>
+        <div class="re">${esc(x.q.e || '')}</div>
+      </li>`).join('');
+
+    show('result');
+    submitScore({ mode: g.mode, name: g.name, score, correct: g.correct, total, time })
+      .then(() => loadRanking(g.mode))
+      .then((rows) => {
+        const list = bestPerName(rows);
+        const pos = list.findIndex((r) => r.name === g.name) + 1;
+        const best = list[pos - 1];
+        let msg = `現在 ${list.length}人中 ${pos}位`;
+        if (best && (best.score > score || (best.score === score && best.time < time))) msg += `（自己ベスト ${best.score}${g.cfg.unit}）`;
+        else msg = '🎉 自己ベスト更新！ ' + msg;
+        $('rRank').textContent = msg;
+      })
+      .catch(() => { $('rRank').textContent = '⚠️ ランキングに登録できませんでした（通信エラー）'; });
+  }
+
+  // ---- ランキング（共有 or 端末内） ----
+  async function submitScore(rec) {
+    if (!API) {
+      const all = store.get(LOCAL_KEY, []);
+      all.push({ ...rec, date: new Date().toISOString() });
+      store.set(LOCAL_KEY, all);
+      return;
+    }
+    // text/plain で送るとプリフライトが発生せず Apps Script に届く
+    const res = await fetch(API, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(rec) });
+    const j = await res.json();
+    if (!j.ok) throw new Error(j.error);
+  }
+
+  async function loadRanking(mode) {
+    if (!API) return store.get(LOCAL_KEY, []).filter((r) => r.mode === mode);
+    const res = await fetch(`${API}?mode=${encodeURIComponent(mode)}&t=${Date.now()}`);
+    const j = await res.json();
+    if (!j.ok) throw new Error('load failed');
+    return j.rows;
+  }
+
+  function better(a, b) { return a.score !== b.score ? a.score > b.score : a.time < b.time; }
+
+  function bestPerName(rows) {
+    const map = new Map();
+    rows.forEach((r) => {
+      const cur = map.get(r.name);
+      if (!cur) map.set(r.name, { ...r, plays: 1 });
+      else {
+        cur.plays++;
+        if (better(r, cur)) map.set(r.name, { ...r, plays: cur.plays });
+      }
+    });
+    return [...map.values()].sort((a, b) => (better(a, b) ? -1 : better(b, a) ? 1 : 0));
+  }
+
+  let currentTab = 'general';
+  async function renderRanking(mode) {
+    currentTab = mode;
+    document.querySelectorAll('.tabs button').forEach((b) => b.classList.toggle('on', b.dataset.tab === mode));
+    $('localBanner').hidden = !!API;
+    const ul = $('rankList');
+    ul.innerHTML = '<li class="empty">読み込み中…</li>';
+    try {
+      const list = bestPerName(await loadRanking(mode));
+      if (currentTab !== mode) return;
+      if (!list.length) { ul.innerHTML = '<li class="empty">まだ記録がありません．一番乗りしよう！</li>'; return; }
+      const me = store.get(NAME_KEY, '');
+      const medal = ['🥇', '🥈', '🥉'];
+      ul.innerHTML = list.slice(0, 50).map((r, i) => `
+        <li class="${r.name === me ? 'me' : ''}">
+          <div class="pos p${i + 1}">${medal[i] || i + 1}</div>
+          <div class="who"><b>${esc(r.name)}</b><small>${r.correct}/${r.total}問正解・${r.time}秒・${r.plays}回プレイ</small></div>
+          <div class="pts">${r.score}<small>${mode === 'general' ? '点' : ' IQ'}</small></div>
+        </li>`).join('');
+    } catch (e) {
+      ul.innerHTML = '<li class="empty">⚠️ ランキングを読み込めませんでした</li>';
+    }
+  }
+
+  // ---- シェア ----
+  async function share() {
+    const g = game;
+    if (!g || !g.final) return;
+    const text = g.mode === 'general'
+      ? `脳トレバトル「常識クイズ」で ${g.final.score}点（${g.correct}/${g.qs.length}問正解）でした！`
+      : `脳トレバトル「IQテスト」で推定IQ ${g.final.score}（${g.correct}/${g.qs.length}問正解）でした！`;
+    const url = location.href.split('#')[0].split('?')[0];
+    try {
+      if (navigator.share) { await navigator.share({ text, url }); return; }
+      await navigator.clipboard.writeText(`${text}\n${url}`);
+      $('share').textContent = '✅ コピーしました';
+      setTimeout(() => { $('share').textContent = '📣 結果をシェア'; }, 1800);
+    } catch (e) { /* キャンセル時など */ }
+  }
+
+  // ---- イベント ----
+  document.querySelectorAll('.mode').forEach((b) => b.addEventListener('click', () => startGame(b.dataset.mode)));
+  nameInput.addEventListener('input', () => { nameInput.style.borderColor = ''; });
+  $('goRanking').addEventListener('click', () => { show('ranking'); renderRanking(currentTab); });
+  $('toRanking').addEventListener('click', () => { show('ranking'); renderRanking(game ? game.mode : 'general'); });
+  $('again').addEventListener('click', () => startGame(game.mode));
+  $('toHome').addEventListener('click', () => show('home'));
+  $('rankHome').addEventListener('click', () => show('home'));
+  $('reload').addEventListener('click', () => renderRanking(currentTab));
+  $('share').addEventListener('click', share);
+  $('quit').addEventListener('click', () => { clearInterval(timerId); if (game) game.locked = false; game = null; show('home'); });
+  document.querySelectorAll('.tabs button').forEach((b) => b.addEventListener('click', () => renderRanking(b.dataset.tab)));
+})();
+</script>
+</body>
+</html>
