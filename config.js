@@ -1,4 +1,2 @@
 // ランキング保存先（Google Apps Script のウェブアプリURL）
-// README の手順でデプロイしたURLを ' ' の間に貼り付けてください．
-// 空のままだと，この端末の中だけのランキングになります．
-const RANKING_API_URL = '';
+const RANKING_API_URL = 'https://script.google.com/macros/s/AKfycbyE1KniQvK08TvJ5cAAn2B_rGX4PO32y0HWX3ikkf95snK4nbQxGcel-bZ7zR3CLGvM/exec';
